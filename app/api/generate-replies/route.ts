@@ -9,6 +9,9 @@ type RequestBody = {
   context?: string;
 };
 
+const MAX_MESSAGE_LENGTH = 1600;
+const MAX_CONTEXT_LENGTH = 600;
+
 const demoReplies = {
   vibe: "They are lightly teasing you. It probably does not require a heavy apology. A playful answer is safer than over-explaining.",
   strategy: "Acknowledge the tease, keep it light, and make yourself look self-aware rather than defensive.",
@@ -32,15 +35,60 @@ const demoReplies = {
       label: "Warm",
       text: "Guilty. I’m back now though — what did I miss?",
       why: "Good if you want to reconnect smoothly."
+    },
+    {
+      label: "Less cringe",
+      text: "Fair call. I’m back now.",
+      why: "Simple, natural, and hard to misread."
     }
   ],
   caution: "Demo mode: add OPENAI_API_KEY to get real AI-generated replies."
 };
 
+function clean(input: string | undefined, maxLength: number) {
+  return (input || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function normalizeModelOutput(value: unknown) {
+  if (!value || typeof value !== 'object') {
+    return demoReplies;
+  }
+
+  const data = value as Partial<typeof demoReplies>;
+  const replies = Array.isArray(data.replies)
+    ? data.replies
+        .filter((reply) => reply && typeof reply === 'object')
+        .slice(0, 6)
+        .map((reply) => {
+          const item = reply as { label?: unknown; text?: unknown; why?: unknown };
+          return {
+            label: typeof item.label === 'string' ? item.label.slice(0, 40) : 'Reply',
+            text: typeof item.text === 'string' ? item.text.slice(0, 300) : '',
+            why: typeof item.why === 'string' ? item.why.slice(0, 220) : '',
+          };
+        })
+        .filter((reply) => reply.text)
+    : [];
+
+  return {
+    vibe: typeof data.vibe === 'string' ? data.vibe.slice(0, 360) : 'Here is a quick read of the situation.',
+    strategy: typeof data.strategy === 'string' ? data.strategy.slice(0, 260) : 'Keep it natural, short, and context-aware.',
+    replies: replies.length ? replies : demoReplies.replies,
+    caution: typeof data.caution === 'string' ? data.caution.slice(0, 260) : '',
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as RequestBody;
-    const message = body.message?.trim();
+    const message = clean(body.message, MAX_MESSAGE_LENGTH);
+    const relationship = clean(body.relationship, 80) || 'Friend';
+    const tone = clean(body.tone, 80) || 'Witty';
+    const length = clean(body.length, 80) || 'Short';
+    const context = clean(body.context, MAX_CONTEXT_LENGTH) || 'None';
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required.' }, { status: 400 });
@@ -54,26 +102,41 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const prompt = `
-You are Quick on My Feet, an AI conversation coach.
+    const completion = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are Quick on My Feet, an AI conversation coach. Generate copy-ready replies that are natural, socially sharp, and not cringe. Always return valid JSON.',
+        },
+        {
+          role: 'user',
+          content: `
+Incoming message:
+${message}
 
-Goal:
-Help the user reply in a way that is natural, socially sharp, witty when appropriate, and not cringe.
+Relationship:
+${relationship}
 
-Input:
-- Incoming message: "${message}"
-- Relationship: "${body.relationship || 'Friend'}"
-- Desired tone: "${body.tone || 'Witty'}"
-- Desired length: "${body.length || 'Short'}"
-- Extra context: "${body.context || 'None'}"
+Desired tone:
+${tone}
 
-Rules:
-- Do not be generic.
-- Do not be overly dramatic.
-- Avoid cringe, pickup-artist language, manipulation, insults, or mean humor.
-- Keep replies realistic for actual texting.
-- If the situation seems sensitive, choose safer wording.
-- Return only valid JSON. No Markdown.
+Desired length:
+${length}
+
+Extra context:
+${context}
+
+Output requirements:
+- Return only valid JSON.
+- No Markdown.
+- Generate exactly 5 reply options.
+- Replies must be realistic for texting or DMs.
+- Avoid manipulation, harassment, insults, hate, sexual pressure, or pickup-artist language.
+- If the incoming message seems tense, make replies safer and warmer.
+- Include a clear vibe read and response strategy.
+- Make "Less cringe" tone very plain, natural, and understated.
 
 JSON shape:
 {
@@ -88,22 +151,11 @@ JSON shape:
   ],
   "caution": "Optional caution if needed, otherwise empty string"
 }
-
-Generate 5 reply options.
-`;
-
-    const completion = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You generate high-quality text-message replies. You always return valid JSON and avoid unsafe, harassing, manipulative, or hateful content.',
+`,
         },
-        { role: 'user', content: prompt },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.85,
+      temperature: 0.82,
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -111,12 +163,11 @@ Generate 5 reply options.
       return NextResponse.json({ error: 'No response generated.' }, { status: 500 });
     }
 
-    const parsed = JSON.parse(content);
-    return NextResponse.json(parsed);
+    return NextResponse.json(normalizeModelOutput(JSON.parse(content)));
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: 'Failed to generate replies. Check server logs and API key.' },
+      { error: 'Failed to generate replies. Check the API key, model name, or server logs.' },
       { status: 500 }
     );
   }
