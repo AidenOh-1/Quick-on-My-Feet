@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   CheckCircle2,
   HeartHandshake,
+  Laugh,
 } from 'lucide-react';
 
 type Reply = {
@@ -35,6 +36,7 @@ type Scenario = {
   tone: string;
   length: string;
   voice: string;
+  humorLevel: string;
   message: string;
   context: string;
 };
@@ -43,15 +45,27 @@ const relationships = ['Friend', 'Dating / crush', 'Coworker', 'Boss', 'Group ch
 const tones = ['Witty', 'Funny', 'Flirty', 'Warm', 'Professional', 'Soft no', 'Comeback', 'Less cringe'];
 const lengths = ['Short', 'Medium', 'One-liner'];
 const voices = ['Balanced', 'Casual', 'Confident', 'Dry humor', 'Warm', 'Korean-American', 'Executive'];
+const humorLevels = ['Safe', 'Playful', 'Funnier', 'Meme / absurd', 'Pop-culture'];
 const feedbackOptions = ['Good', 'Too cringe', 'Too long', 'Not my style'];
 
 const scenarios: Scenario[] = [
+  {
+    label: 'Bathroom emergency',
+    relationship: 'Friend',
+    tone: 'Funny',
+    length: 'One-liner',
+    voice: 'Casual',
+    humorLevel: 'Pop-culture',
+    message: 'I have to go to the restroom bad lol',
+    context: 'Make it dramatic and funny like: May the Force be with me 😂',
+  },
   {
     label: 'Friend teasing you',
     relationship: 'Friend',
     tone: 'Witty',
     length: 'Short',
     voice: 'Casual',
+    humorLevel: 'Playful',
     message: 'You disappeared again lol',
     context: 'I was busy but want to keep it playful.',
   },
@@ -61,6 +75,7 @@ const scenarios: Scenario[] = [
     tone: 'Flirty',
     length: 'One-liner',
     voice: 'Confident',
+    humorLevel: 'Playful',
     message: 'Are you always this busy or just ignoring me?',
     context: 'Keep it confident, playful, and not too much.',
   },
@@ -70,6 +85,7 @@ const scenarios: Scenario[] = [
     tone: 'Professional',
     length: 'Short',
     voice: 'Executive',
+    humorLevel: 'Safe',
     message: 'Can you send me the update by tonight?',
     context: 'I can send a partial update today and full version tomorrow.',
   },
@@ -79,6 +95,7 @@ const scenarios: Scenario[] = [
     tone: 'Comeback',
     length: 'One-liner',
     voice: 'Dry humor',
+    humorLevel: 'Meme / absurd',
     message: 'Lol okay, Mr. Corporate Strategy',
     context: 'Make it funny but not mean.',
   },
@@ -88,7 +105,7 @@ const benefits = [
   'Reads the vibe before replying',
   'Gives multiple levels of boldness',
   'Keeps replies natural, short, and usable',
-  'Designed to avoid cringe and over-explaining',
+  'Can go from safe to meme-level funny',
 ];
 
 export default function Home() {
@@ -97,6 +114,7 @@ export default function Home() {
   const [tone, setTone] = useState(scenarios[0].tone);
   const [length, setLength] = useState(scenarios[0].length);
   const [voice, setVoice] = useState(scenarios[0].voice);
+  const [humorLevel, setHumorLevel] = useState(scenarios[0].humorLevel);
   const [context, setContext] = useState(scenarios[0].context);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -113,6 +131,7 @@ export default function Home() {
     setTone(scenario.tone);
     setLength(scenario.length);
     setVoice(scenario.voice);
+    setHumorLevel(scenario.humorLevel);
     setContext(scenario.context);
     setResult(null);
     setError('');
@@ -121,9 +140,10 @@ export default function Home() {
     setFeedbackSaved(false);
   }
 
-  async function generateReplies(nextTone?: string) {
+  async function generateReplies(nextTone?: string, nextHumorLevel?: string) {
     if (!canGenerate) return;
     const selectedTone = nextTone || tone;
+    const selectedHumorLevel = nextHumorLevel || humorLevel;
 
     setLoading(true);
     setError('');
@@ -135,7 +155,15 @@ export default function Home() {
       const res = await fetch('/api/generate-replies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, relationship, tone: selectedTone, length, voice, context }),
+        body: JSON.stringify({
+          message,
+          relationship,
+          tone: selectedTone,
+          length,
+          voice,
+          humorLevel: selectedHumorLevel,
+          context,
+        }),
       });
 
       const data = await res.json();
@@ -169,6 +197,7 @@ export default function Home() {
       tone,
       length,
       voice,
+      humorLevel,
       createdAt: new Date().toISOString(),
       replies: result?.replies?.map((reply) => reply.text) || [],
     };
@@ -188,7 +217,7 @@ export default function Home() {
           <div className="mb-8 flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-600">
               <Zap className="h-4 w-4" />
-              MVP v0.3
+              MVP v0.4 humor
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
               <Lock className="h-4 w-4" />
@@ -200,7 +229,7 @@ export default function Home() {
             Be quick on your feet in any text conversation.
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-            Paste a text, DM, or awkward message. Get a quick read of the vibe and copy-ready replies that sound witty, natural, and socially sharp.
+            Paste a text, DM, or awkward message. Get a quick read of the vibe and copy-ready replies — from safe and natural to meme-level funny.
           </p>
 
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -235,11 +264,12 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <SelectCard label="Relationship" value={relationship} setValue={setRelationship} options={relationships} />
               <SelectCard label="Tone" value={tone} setValue={setTone} options={tones} />
               <SelectCard label="Length" value={length} setValue={setLength} options={lengths} />
               <SelectCard label="Voice" value={voice} setValue={setVoice} options={voices} />
+              <SelectCard label="Humor level" value={humorLevel} setValue={setHumorLevel} options={humorLevels} />
             </div>
 
             <label className="grid gap-2">
@@ -248,7 +278,7 @@ export default function Home() {
                 value={context}
                 onChange={(event) => setContext(event.target.value)}
                 className="rounded-2xl border border-slate-200 bg-white p-4 outline-none ring-blue-500/20 transition focus:border-blue-400 focus:ring-4"
-                placeholder="e.g., I was actually busy, but I want to keep it playful"
+                placeholder="e.g., Make it dramatic like May the Force be with me 😂"
               />
             </label>
 
@@ -271,7 +301,7 @@ export default function Home() {
             </button>
 
             {result && (
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-4">
                 <button
                   onClick={() => {
                     setTone('Less cringe');
@@ -286,7 +316,8 @@ export default function Home() {
                 <button
                   onClick={() => {
                     setTone('Witty');
-                    generateReplies('Witty');
+                    setHumorLevel('Funnier');
+                    generateReplies('Witty', 'Funnier');
                   }}
                   disabled={loading}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
@@ -304,6 +335,18 @@ export default function Home() {
                 >
                   <HeartHandshake className="h-4 w-4" />
                   Make warmer
+                </button>
+                <button
+                  onClick={() => {
+                    setTone('Funny');
+                    setHumorLevel('Meme / absurd');
+                    generateReplies('Funny', 'Meme / absurd');
+                  }}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <Laugh className="h-4 w-4" />
+                  Make it funnier
                 </button>
               </div>
             )}
