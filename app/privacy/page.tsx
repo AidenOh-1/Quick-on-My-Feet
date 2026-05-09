@@ -1,10 +1,12 @@
+import Link from 'next/link';
+
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-3xl rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-soft backdrop-blur md:p-8">
-        <a href="/" className="text-sm font-bold text-slate-500 hover:text-slate-900">
+        <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-900">
           ← Back to app
-        </a>
+        </Link>
 
         <h1 className="mt-8 text-4xl font-black tracking-tight text-slate-950">
           Privacy baseline
