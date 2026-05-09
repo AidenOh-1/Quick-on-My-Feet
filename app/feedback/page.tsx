@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 type FeedbackRecord = {
@@ -35,9 +36,9 @@ export default function FeedbackPage() {
       <section className="mx-auto max-w-5xl rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-soft backdrop-blur md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <a href="/" className="text-sm font-bold text-slate-500 hover:text-slate-900">
+            <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-900">
               ← Back to app
-            </a>
+            </Link>
             <h1 className="mt-6 text-4xl font-black tracking-tight text-slate-950">
               Local feedback log
             </h1>
