@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
   Copy,
@@ -401,7 +402,7 @@ export default function Home() {
           </div>
 
           <div className="rounded-[2rem] border border-white/80 bg-white/70 p-5 text-sm leading-6 text-slate-500 shadow-sm">
-            <strong className="text-slate-800">Privacy note:</strong> In this MVP, messages are sent to the app server only to generate replies. The app does not include login, database storage, or conversation history. <a href="/privacy" className="font-bold text-slate-800 underline">Read privacy baseline</a>.
+            <strong className="text-slate-800">Privacy note:</strong> In this MVP, messages are sent to the app server only to generate replies. The app does not include login, database storage, or conversation history. <Link href="/privacy" className="font-bold text-slate-800 underline">Read privacy baseline</Link>.
           </div>
         </div>
       </section>
