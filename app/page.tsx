@@ -33,6 +33,7 @@ type Scenario = {
   relationship: string;
   tone: string;
   length: string;
+  voice: string;
   message: string;
   context: string;
 };
@@ -40,6 +41,8 @@ type Scenario = {
 const relationships = ['Friend', 'Dating / crush', 'Coworker', 'Boss', 'Group chat', 'Networking'];
 const tones = ['Witty', 'Funny', 'Flirty', 'Warm', 'Professional', 'Soft no', 'Comeback', 'Less cringe'];
 const lengths = ['Short', 'Medium', 'One-liner'];
+const voices = ['Balanced', 'Casual', 'Confident', 'Dry humor', 'Warm', 'Korean-American', 'Executive'];
+const feedbackOptions = ['Good', 'Too cringe', 'Too long', 'Not my style'];
 
 const scenarios: Scenario[] = [
   {
@@ -47,6 +50,7 @@ const scenarios: Scenario[] = [
     relationship: 'Friend',
     tone: 'Witty',
     length: 'Short',
+    voice: 'Casual',
     message: 'You disappeared again lol',
     context: 'I was busy but want to keep it playful.',
   },
@@ -55,6 +59,7 @@ const scenarios: Scenario[] = [
     relationship: 'Dating / crush',
     tone: 'Flirty',
     length: 'One-liner',
+    voice: 'Confident',
     message: 'Are you always this busy or just ignoring me?',
     context: 'Keep it confident, playful, and not too much.',
   },
@@ -63,6 +68,7 @@ const scenarios: Scenario[] = [
     relationship: 'Coworker',
     tone: 'Professional',
     length: 'Short',
+    voice: 'Executive',
     message: 'Can you send me the update by tonight?',
     context: 'I can send a partial update today and full version tomorrow.',
   },
@@ -71,6 +77,7 @@ const scenarios: Scenario[] = [
     relationship: 'Group chat',
     tone: 'Comeback',
     length: 'One-liner',
+    voice: 'Dry humor',
     message: 'Lol okay, Mr. Corporate Strategy',
     context: 'Make it funny but not mean.',
   },
@@ -88,10 +95,13 @@ export default function Home() {
   const [relationship, setRelationship] = useState(scenarios[0].relationship);
   const [tone, setTone] = useState(scenarios[0].tone);
   const [length, setLength] = useState(scenarios[0].length);
+  const [voice, setVoice] = useState(scenarios[0].voice);
   const [context, setContext] = useState(scenarios[0].context);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [feedbackSaved, setFeedbackSaved] = useState(false);
   const [error, setError] = useState('');
 
   const canGenerate = useMemo(() => message.trim().length > 0, [message]);
@@ -101,10 +111,13 @@ export default function Home() {
     setRelationship(scenario.relationship);
     setTone(scenario.tone);
     setLength(scenario.length);
+    setVoice(scenario.voice);
     setContext(scenario.context);
     setResult(null);
     setError('');
     setCopied(null);
+    setFeedback('');
+    setFeedbackSaved(false);
   }
 
   async function generateReplies(nextTone?: string) {
@@ -114,12 +127,14 @@ export default function Home() {
     setLoading(true);
     setError('');
     setCopied(null);
+    setFeedback('');
+    setFeedbackSaved(false);
 
     try {
       const res = await fetch('/api/generate-replies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, relationship, tone: selectedTone, length, context }),
+        body: JSON.stringify({ message, relationship, tone: selectedTone, length, voice, context }),
       });
 
       const data = await res.json();
@@ -142,6 +157,29 @@ export default function Home() {
     setTimeout(() => setCopied(null), 1400);
   }
 
+  function saveFeedback(value: string) {
+    setFeedback(value);
+    setFeedbackSaved(true);
+
+    const payload = {
+      feedback: value,
+      message,
+      relationship,
+      tone,
+      length,
+      voice,
+      createdAt: new Date().toISOString(),
+      replies: result?.replies?.map((reply) => reply.text) || [],
+    };
+
+    try {
+      const current = JSON.parse(localStorage.getItem('qomf-feedback') || '[]') as unknown[];
+      localStorage.setItem('qomf-feedback', JSON.stringify([payload, ...current].slice(0, 50)));
+    } catch {
+      localStorage.setItem('qomf-feedback', JSON.stringify([payload]));
+    }
+  }
+
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -149,7 +187,7 @@ export default function Home() {
           <div className="mb-8 flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-600">
               <Zap className="h-4 w-4" />
-              MVP v0.2
+              MVP v0.3
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
               <Lock className="h-4 w-4" />
@@ -178,7 +216,7 @@ export default function Home() {
               <span className="text-sm font-bold text-slate-700">What did they say?</span>
               <textarea
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(event) => setMessage(event.target.value)}
                 className="min-h-32 resize-none rounded-3xl border border-slate-200 bg-white p-4 text-base outline-none ring-blue-500/20 transition focus:border-blue-400 focus:ring-4"
                 placeholder="Paste the message here..."
               />
@@ -196,17 +234,18 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SelectCard label="Relationship" value={relationship} setValue={setRelationship} options={relationships} />
               <SelectCard label="Tone" value={tone} setValue={setTone} options={tones} />
               <SelectCard label="Length" value={length} setValue={setLength} options={lengths} />
+              <SelectCard label="Voice" value={voice} setValue={setVoice} options={voices} />
             </div>
 
             <label className="grid gap-2">
               <span className="text-sm font-bold text-slate-700">Optional context</span>
               <input
                 value={context}
-                onChange={(e) => setContext(e.target.value)}
+                onChange={(event) => setContext(event.target.value)}
                 className="rounded-2xl border border-slate-200 bg-white p-4 outline-none ring-blue-500/20 transition focus:border-blue-400 focus:ring-4"
                 placeholder="e.g., I was actually busy, but I want to keep it playful"
               />
@@ -328,6 +367,32 @@ export default function Home() {
               )}
             </div>
 
+            {result?.replies?.length ? (
+              <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-bold text-slate-700">How useful were these?</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {feedbackOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => saveFeedback(option)}
+                      className={`rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                        feedback === option
+                          ? 'border-slate-950 bg-slate-950 text-white'
+                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                {feedbackSaved && (
+                  <p className="mt-3 text-xs font-medium text-emerald-700">
+                    Saved locally in this browser for MVP testing.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             {result?.caution && (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
                 {result.caution}
@@ -336,7 +401,7 @@ export default function Home() {
           </div>
 
           <div className="rounded-[2rem] border border-white/80 bg-white/70 p-5 text-sm leading-6 text-slate-500 shadow-sm">
-            <strong className="text-slate-800">Privacy note:</strong> In this MVP, messages are sent to the app server only to generate replies. The app does not include login, database storage, or conversation history.
+            <strong className="text-slate-800">Privacy note:</strong> In this MVP, messages are sent to the app server only to generate replies. The app does not include login, database storage, or conversation history. <a href="/privacy" className="font-bold text-slate-800 underline">Read privacy baseline</a>.
           </div>
         </div>
       </section>
@@ -360,7 +425,7 @@ function SelectCard({
       <span className="text-sm font-bold text-slate-700">{label}</span>
       <select
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(event) => setValue(event.target.value)}
         className="rounded-2xl border border-slate-200 bg-white p-4 outline-none ring-blue-500/20 transition focus:border-blue-400 focus:ring-4"
       >
         {options.map((option) => (
