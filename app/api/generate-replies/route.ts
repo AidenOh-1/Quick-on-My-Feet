@@ -6,6 +6,7 @@ type RequestBody = {
   relationship?: string;
   tone?: string;
   length?: string;
+  voice?: string;
   context?: string;
 };
 
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
     const relationship = clean(body.relationship, 80) || 'Friend';
     const tone = clean(body.tone, 80) || 'Witty';
     const length = clean(body.length, 80) || 'Short';
+    const voice = clean(body.voice, 80) || 'Balanced';
     const context = clean(body.context, MAX_CONTEXT_LENGTH) || 'None';
 
     if (!message) {
@@ -125,8 +127,20 @@ ${tone}
 Desired length:
 ${length}
 
+User voice preset:
+${voice}
+
 Extra context:
 ${context}
+
+Voice preset guidance:
+- Balanced: broadly natural, safe, and usable.
+- Casual: relaxed, simple, and conversational.
+- Confident: direct, self-assured, but not arrogant.
+- Dry humor: understated, clever, and low-drama.
+- Warm: kind, emotionally intelligent, and reassuring.
+- Korean-American: natural American English with slightly warm, modest, non-cringe phrasing.
+- Executive: concise, polished, and professional.
 
 Output requirements:
 - Return only valid JSON.
