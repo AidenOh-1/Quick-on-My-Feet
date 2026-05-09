@@ -7,6 +7,7 @@ type RequestBody = {
   tone?: string;
   length?: string;
   voice?: string;
+  humorLevel?: string;
   context?: string;
 };
 
@@ -14,33 +15,33 @@ const MAX_MESSAGE_LENGTH = 1600;
 const MAX_CONTEXT_LENGTH = 600;
 
 const demoReplies = {
-  vibe: "They are lightly teasing you. It probably does not require a heavy apology. A playful answer is safer than over-explaining.",
-  strategy: "Acknowledge the tease, keep it light, and make yourself look self-aware rather than defensive.",
+  vibe: "This is a low-stakes overshare/joke moment. A tiny dramatic one-liner will work better than a normal helpful reply.",
+  strategy: "Treat the situation like a mock-heroic quest: short, absurd, and easy to laugh at.",
   replies: [
     {
-      label: "Safe witty",
-      text: "Haha fair. I went into full ghost mode for a second.",
-      why: "Owns it without making the conversation too serious."
+      label: "Pop culture",
+      text: "May the Force be with me 😂",
+      why: "Turns a bathroom emergency into a tiny heroic mission."
     },
     {
-      label: "Playful",
-      text: "I wasn’t disappearing, I was buffering.",
-      why: "Light joke, easy to continue the conversation."
+      label: "Dramatic",
+      text: "Tell my story if I don’t make it back.",
+      why: "Classic overdramatic escalation for a low-stakes problem."
     },
     {
-      label: "Confident",
-      text: "I call it creating demand through scarcity.",
-      why: "A little cheeky, but still friendly."
+      label: "Mission mode",
+      text: "Going dark. This is not a drill.",
+      why: "Makes it feel like an action movie moment."
     },
     {
-      label: "Warm",
-      text: "Guilty. I’m back now though — what did I miss?",
-      why: "Good if you want to reconnect smoothly."
+      label: "Absurd",
+      text: "I’m entering the final boss level.",
+      why: "Game reference, short and silly."
     },
     {
-      label: "Less cringe",
-      text: "Fair call. I’m back now.",
-      why: "Simple, natural, and hard to misread."
+      label: "Simple funny",
+      text: "Pray for me 😂",
+      why: "Very short, dramatic, and easy to send."
     }
   ],
   caution: "Demo mode: add OPENAI_API_KEY to get real AI-generated replies."
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
     const tone = clean(body.tone, 80) || 'Witty';
     const length = clean(body.length, 80) || 'Short';
     const voice = clean(body.voice, 80) || 'Balanced';
+    const humorLevel = clean(body.humorLevel, 80) || 'Playful';
     const context = clean(body.context, MAX_CONTEXT_LENGTH) || 'None';
 
     if (!message) {
@@ -110,7 +112,7 @@ export async function POST(req: Request) {
         {
           role: 'system',
           content:
-            'You are Quick on My Feet, an AI conversation coach. Generate copy-ready replies that are natural, socially sharp, and not cringe. Always return valid JSON.',
+            'You are Quick on My Feet, an AI conversation coach. Generate copy-ready replies that are natural, socially sharp, funny when requested, and not cringe. Always return valid JSON.',
         },
         {
           role: 'user',
@@ -130,6 +132,9 @@ ${length}
 User voice preset:
 ${voice}
 
+Humor level:
+${humorLevel}
+
 Extra context:
 ${context}
 
@@ -142,6 +147,26 @@ Voice preset guidance:
 - Korean-American: natural American English with slightly warm, modest, non-cringe phrasing.
 - Executive: concise, polished, and professional.
 
+Humor level guidance:
+- Safe: light, natural, low-risk humor.
+- Playful: witty but still normal.
+- Funnier: stronger punchlines, more unexpected wording, but still sendable.
+- Meme / absurd: short, dramatic, mock-heroic, internet-style one-liners.
+- Pop-culture: use broad, recognizable references such as movies, quests, missions, final boss, superheroes, space, or fantasy, but do not force obscure references.
+
+For funny social moments, prefer this structure:
+1. Recognize the everyday situation.
+2. Reframe it as a tiny dramatic mission, quest, crisis, boss battle, space opera, or survival moment.
+3. Keep it extremely short.
+4. Add an emoji only when it improves the joke.
+
+Examples of the target funny level:
+- "May the Force be with me 😂"
+- "Tell my story if I don’t make it back."
+- "Going dark. This is not a drill."
+- "I’m entering the final boss level."
+- "Pray for me 😂"
+
 Output requirements:
 - Return only valid JSON.
 - No Markdown.
@@ -151,6 +176,7 @@ Output requirements:
 - If the incoming message seems tense, make replies safer and warmer.
 - Include a clear vibe read and response strategy.
 - Make "Less cringe" tone very plain, natural, and understated.
+- For Meme / absurd or Pop-culture humor, at least 3 replies should be short one-liners with a surprising dramatic reframe.
 
 JSON shape:
 {
@@ -169,7 +195,7 @@ JSON shape:
         },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.82,
+      temperature: humorLevel.includes('Meme') || humorLevel.includes('Pop') ? 1.05 : 0.88,
     });
 
     const content = completion.choices[0]?.message?.content;
