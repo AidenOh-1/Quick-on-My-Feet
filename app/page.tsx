@@ -1,7 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Copy, Sparkles, Wand2, ShieldCheck, MessageCircle, Zap } from 'lucide-react';
+import {
+  Copy,
+  Sparkles,
+  Wand2,
+  ShieldCheck,
+  MessageCircle,
+  Zap,
+  Lock,
+  RefreshCw,
+  SlidersHorizontal,
+  CheckCircle2,
+  HeartHandshake,
+} from 'lucide-react';
 
 type Reply = {
   label: string;
@@ -16,23 +28,67 @@ type GenerateResponse = {
   caution?: string;
 };
 
+type Scenario = {
+  label: string;
+  relationship: string;
+  tone: string;
+  length: string;
+  message: string;
+  context: string;
+};
+
 const relationships = ['Friend', 'Dating / crush', 'Coworker', 'Boss', 'Group chat', 'Networking'];
 const tones = ['Witty', 'Funny', 'Flirty', 'Warm', 'Professional', 'Soft no', 'Comeback', 'Less cringe'];
 const lengths = ['Short', 'Medium', 'One-liner'];
 
-const examples = [
-  'You disappeared again lol',
-  'Are you always this busy or just ignoring me?',
-  'Can you send me the update by tonight?',
-  'Lol okay, Mr. Corporate Strategy',
+const scenarios: Scenario[] = [
+  {
+    label: 'Friend teasing you',
+    relationship: 'Friend',
+    tone: 'Witty',
+    length: 'Short',
+    message: 'You disappeared again lol',
+    context: 'I was busy but want to keep it playful.',
+  },
+  {
+    label: 'Dating app banter',
+    relationship: 'Dating / crush',
+    tone: 'Flirty',
+    length: 'One-liner',
+    message: 'Are you always this busy or just ignoring me?',
+    context: 'Keep it confident, playful, and not too much.',
+  },
+  {
+    label: 'Work DM',
+    relationship: 'Coworker',
+    tone: 'Professional',
+    length: 'Short',
+    message: 'Can you send me the update by tonight?',
+    context: 'I can send a partial update today and full version tomorrow.',
+  },
+  {
+    label: 'Group chat roast',
+    relationship: 'Group chat',
+    tone: 'Comeback',
+    length: 'One-liner',
+    message: 'Lol okay, Mr. Corporate Strategy',
+    context: 'Make it funny but not mean.',
+  },
+];
+
+const benefits = [
+  'Reads the vibe before replying',
+  'Gives multiple levels of boldness',
+  'Keeps replies natural, short, and usable',
+  'Designed to avoid cringe and over-explaining',
 ];
 
 export default function Home() {
-  const [message, setMessage] = useState('You disappeared again lol');
-  const [relationship, setRelationship] = useState('Friend');
-  const [tone, setTone] = useState('Witty');
-  const [length, setLength] = useState('Short');
-  const [context, setContext] = useState('');
+  const [message, setMessage] = useState(scenarios[0].message);
+  const [relationship, setRelationship] = useState(scenarios[0].relationship);
+  const [tone, setTone] = useState(scenarios[0].tone);
+  const [length, setLength] = useState(scenarios[0].length);
+  const [context, setContext] = useState(scenarios[0].context);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -40,8 +96,21 @@ export default function Home() {
 
   const canGenerate = useMemo(() => message.trim().length > 0, [message]);
 
-  async function generateReplies() {
+  function loadScenario(scenario: Scenario) {
+    setMessage(scenario.message);
+    setRelationship(scenario.relationship);
+    setTone(scenario.tone);
+    setLength(scenario.length);
+    setContext(scenario.context);
+    setResult(null);
+    setError('');
+    setCopied(null);
+  }
+
+  async function generateReplies(nextTone?: string) {
     if (!canGenerate) return;
+    const selectedTone = nextTone || tone;
+
     setLoading(true);
     setError('');
     setCopied(null);
@@ -50,7 +119,7 @@ export default function Home() {
       const res = await fetch('/api/generate-replies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, relationship, tone, length, context }),
+        body: JSON.stringify({ message, relationship, tone: selectedTone, length, context }),
       });
 
       const data = await res.json();
@@ -77,17 +146,32 @@ export default function Home() {
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="rounded-[2rem] border border-white/80 bg-white/85 p-6 shadow-soft backdrop-blur md:p-8">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-600">
-            <Zap className="h-4 w-4" />
-            MVP v0.1
+          <div className="mb-8 flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-600">
+              <Zap className="h-4 w-4" />
+              MVP v0.2
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+              <Lock className="h-4 w-4" />
+              No chat history saved in MVP
+            </div>
           </div>
 
-          <h1 className="max-w-xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-            Never freeze in a conversation again.
+          <h1 className="max-w-2xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+            Be quick on your feet in any text conversation.
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-            Paste a text, DM, or awkward message. Get witty, natural replies that sound sharp — not cringe.
+            Paste a text, DM, or awkward message. Get a quick read of the vibe and copy-ready replies that sound witty, natural, and socially sharp.
           </p>
+
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            {benefits.map((benefit) => (
+              <div key={benefit} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                {benefit}
+              </div>
+            ))}
+          </div>
 
           <div className="mt-8 grid gap-4">
             <label className="grid gap-2">
@@ -101,13 +185,13 @@ export default function Home() {
             </label>
 
             <div className="flex flex-wrap gap-2">
-              {examples.map((example) => (
+              {scenarios.map((scenario) => (
                 <button
-                  key={example}
-                  onClick={() => setMessage(example)}
+                  key={scenario.label}
+                  onClick={() => loadScenario(scenario)}
                   className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                 >
-                  {example}
+                  {scenario.label}
                 </button>
               ))}
             </div>
@@ -130,7 +214,7 @@ export default function Home() {
 
             <button
               disabled={!canGenerate || loading}
-              onClick={generateReplies}
+              onClick={() => generateReplies()}
               className="mt-2 flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-4 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
@@ -145,6 +229,44 @@ export default function Home() {
                 </>
               )}
             </button>
+
+            {result && (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <button
+                  onClick={() => {
+                    setTone('Less cringe');
+                    generateReplies('Less cringe');
+                  }}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Less cringe
+                </button>
+                <button
+                  onClick={() => {
+                    setTone('Witty');
+                    generateReplies('Witty');
+                  }}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Try wittier
+                </button>
+                <button
+                  onClick={() => {
+                    setTone('Warm');
+                    generateReplies('Warm');
+                  }}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <HeartHandshake className="h-4 w-4" />
+                  Make warmer
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -211,6 +333,10 @@ export default function Home() {
                 {result.caution}
               </div>
             )}
+          </div>
+
+          <div className="rounded-[2rem] border border-white/80 bg-white/70 p-5 text-sm leading-6 text-slate-500 shadow-sm">
+            <strong className="text-slate-800">Privacy note:</strong> In this MVP, messages are sent to the app server only to generate replies. The app does not include login, database storage, or conversation history.
           </div>
         </div>
       </section>
